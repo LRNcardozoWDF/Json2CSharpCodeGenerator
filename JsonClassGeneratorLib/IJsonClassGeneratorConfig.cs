@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 
 namespace Xamasoft.JsonClassGenerator
 {
@@ -11,11 +12,17 @@ namespace Xamasoft.JsonClassGenerator
         bool         ExplicitDeserialization    { get; set; }
         bool         NoHelperClass              { get; set; }
         string       MainClass                  { get; set; }
+        string       InputFileName                  { get; set; }
+        string       InputFileAreaName                  { get; set; }
+        string       InputFileProductName                  { get; set; }
+        bool       isInput                  { get; set; }
         bool         UseProperties              { get; set; }
         bool         UsePascalCase              { get; set; }
         
         /// <summary>Use the <see cref="Newtonsoft.Json.JsonPropertyAttribute"/> on generated C# class properties (as opposed to not rendering any attributes, or using <see cref="UseJsonPropertyName"/>).</summary>
         bool         UseJsonAttributes          { get; set; }
+        bool UseJsonPropertyNamesForSDK { get; set; }
+        bool UseJsonPropertyNamesForMSA { get; set; }
 
         /// <summary>Use the <c>[JsonPropertyName]</c> attribute on generated C# class properties (as opposed to not rendering any attributes, or using <see cref="UseJsonAttributes"/>).</summary>
         bool         UseJsonPropertyName        { get; set; }
@@ -47,11 +54,19 @@ namespace Xamasoft.JsonClassGenerator
 
            // if (config.UseJsonAttributes && config.UseJsonPropertyName) throw new ArgumentException(message: "Cannot use both " + nameof(config.UseJsonPropertyName) + " and " + nameof(config.UseJsonAttributes) + ".", paramName: nameof(config));
 
-            
-
             string name = field.JsonMemberName;
 
-            if (config.UseJsonPropertyName)
+            if (config.UseJsonPropertyNamesForSDK)
+            {
+                if (name.Contains("_"))
+                {
+                    name = ToTitleCase(name);
+                    name = char.ToLowerInvariant(name[0]) + name.Substring(1);
+                }
+
+                return $"[JsonProperty(\"{name}\")]";
+            }
+            if (config.UseJsonPropertyName || config.UseJsonPropertyNamesForMSA)
             {
                 return "[JsonPropertyName(\"" + name + "\")]";
             }
@@ -63,6 +78,38 @@ namespace Xamasoft.JsonClassGenerator
             {
                 return String.Empty;
             }
+        }
+
+        internal static string ToTitleCase(string str)
+        {
+            StringBuilder sb = new StringBuilder(str.Length);
+            Boolean flag = true;
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                Char c = str[i];
+                string specialCaseFirstCharIsNumber = string.Empty;
+
+                // Handle the case where the first character is a number
+                if (i == 0 && char.IsDigit(c))
+                    specialCaseFirstCharIsNumber = "_" + c;
+
+                if (char.IsLetterOrDigit(c))
+                {
+                    if (string.IsNullOrEmpty(specialCaseFirstCharIsNumber))
+                        sb.Append(flag ? char.ToUpper(c) : c);
+                    else
+                        sb.Append(flag ? specialCaseFirstCharIsNumber.ToUpper() : specialCaseFirstCharIsNumber);
+
+                    flag = false;
+                }
+                else
+                {
+                    flag = true;
+                }
+            }
+
+            return sb.ToString();
         }
     }
 }

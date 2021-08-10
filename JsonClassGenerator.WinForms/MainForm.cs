@@ -14,6 +14,12 @@ namespace Xamasoft.JsonClassGenerator.WinForms
     public partial class MainForm : Form
     {
         private bool preventReentrancy = false;
+        public string NameFile
+        {
+            get; set;
+        }
+
+        public string Teste { get; set; }
 
         public MainForm()
         {
@@ -35,6 +41,8 @@ namespace Xamasoft.JsonClassGenerator.WinForms
             this.optAttribJP    .CheckedChanged += this.OnAttributesModeCheckedChanged;
             this.optAttribJpn   .CheckedChanged += this.OnAttributesModeCheckedChanged;
             this.optAttribNone  .CheckedChanged += this.OnAttributesModeCheckedChanged;
+            this.sDKToolStripMenuItem.CheckedChanged += this.OnAttributesModeCheckedChanged;
+            this.mSAToolStripMenuItem.CheckedChanged += this.OnAttributesModeCheckedChanged;
 
             this.optMemberFields.CheckedChanged += this.OnMemberModeCheckedChanged;
             this.optMemberProps .CheckedChanged += this.OnMemberModeCheckedChanged;
@@ -50,6 +58,7 @@ namespace Xamasoft.JsonClassGenerator.WinForms
             this.jsonInputTextbox.TextChanged += this.JsonInputTextbox_TextChanged;
             this.jsonInputTextbox.DragDrop += this.JsonInputTextbox_DragDrop;
             this.jsonInputTextbox.DragOver += this.JsonInputTextbox_DragOver;
+            this.textBox1.TextChanged += this.textBox1_TextChanged;
             //this.jsonInputTextbox.paste // annoyingly, it isn't (easily) feasible to hook/detect TextBox paste events, even globally... grrr.
 
             // Invoke event-handlers to set initial toolstrip text:
@@ -326,10 +335,22 @@ namespace Xamasoft.JsonClassGenerator.WinForms
 
         private void OpenButton_Click(Object sender, EventArgs e)
         {
-            if( this.ofd.ShowDialog( owner: this ) == DialogResult.OK )
+            //if( this.ofd.ShowDialog( owner: this ) == DialogResult.OK )
+            //{
+            //    this.TryLoadJsonFile( this.ofd.FileName );
+            //}
+
+            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            fbd.Description = "Custom Description";
+
+            if (fbd.ShowDialog() == DialogResult.OK)
             {
-                this.TryLoadJsonFile( this.ofd.FileName );
+                this.Teste = fbd.SelectedPath;
+                this.textBox1.ReadOnly = false;
+                this.jsonInputTextbox.ReadOnly = false;
             }
+
+            this.csharpOutputTextbox.Text = this.Teste;
         }
 
         private void TryLoadJsonFile( String filePath )
@@ -395,23 +416,44 @@ namespace Xamasoft.JsonClassGenerator.WinForms
         private void ConfigureGenerator( IJsonClassGeneratorConfig config )
         {
             config.UsePascalCase = this.optsPascalCase.Checked;
-            
+            config.InputFileName = NameFile;
             //
+            if (this.sDKToolStripMenuItem.Checked)
+            {
+                config.UseJsonAttributes = false;
+                config.UseJsonPropertyName = false;
+                config.UseJsonPropertyNamesForSDK = false;
+                config.UseJsonPropertyNamesForMSA = true;
 
-            if( this.optAttribJP.Checked )
+            }
+            if (this.sDKToolStripMenuItem.Checked)
+            {
+                config.UseJsonAttributes = false;
+                config.UseJsonPropertyName = false;
+                config.UseJsonPropertyNamesForSDK = true;
+                config.UseJsonPropertyNamesForMSA = false;
+
+            }
+            else if( this.optAttribJP.Checked )
             {
                 config.UseJsonAttributes   = true;
                 config.UseJsonPropertyName = false;
+                config.UseJsonPropertyNamesForSDK = false;
+                config.UseJsonPropertyNamesForMSA = false;
             }
             else if( this.optAttribJpn.Checked )
             {
                 config.UseJsonAttributes   = false;
                 config.UseJsonPropertyName = true;
+                config.UseJsonPropertyNamesForSDK = false;
+                config.UseJsonPropertyNamesForMSA = false;
             }
             else// implicit: ( this.optAttribNone.Checked )
             {
                 config.UseJsonAttributes   = false;
                 config.UseJsonPropertyName = false;
+                config.UseJsonPropertyNamesForSDK = false;
+                config.UseJsonPropertyNamesForMSA = false;
             }
 
             //
@@ -446,7 +488,12 @@ namespace Xamasoft.JsonClassGenerator.WinForms
             }
         }
 
-        private void GenerateCSharp()
+        private void textBox1_TextChanged(object sender, EventArgs e)
+        {
+            NameFile = this.textBox1.Text;
+        }
+
+        private async void GenerateCSharp()
         {
             this.copyOutput.Enabled = false;
 
@@ -462,8 +509,147 @@ namespace Xamasoft.JsonClassGenerator.WinForms
 
             try
             {
-                StringBuilder sb = generator.GenerateClasses( jsonText, errorMessage: out String errorMessage );
-                if( !String.IsNullOrWhiteSpace( errorMessage ) )
+                var errorMessage = string.Empty;
+                StringBuilder sb = new StringBuilder();
+
+                if (generator.UseJsonPropertyNamesForSDK)
+                {
+                    var args = textBox1.Text.Split('|');
+
+                    generator.isInput = args[0].Equals("Input");
+                    generator.typeFile = args[0];
+                    generator.InputFileProductName = args[1];
+                    generator.InputFileAreaName = args[2];
+                    generator.InputFileName = args[3];
+                    generator.InputType = args[4];
+
+                    sb = generator.GenerateClasses( jsonText, errorMessage: out errorMessage );
+                   
+                    Directory.SetCurrentDirectory(this.Teste);
+
+                    var repoFolder = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
+                    string finalFolder = Path.Combine(repoFolder, "ParticularesServices");
+
+                    Directory.CreateDirectory(finalFolder);
+
+                    generator.UseJsonPropertyNamesForSDK = false;
+                    generator.UseJsonAttributes = false;
+                    generator.UseJsonPropertyName = false;
+
+                    if (generator.isInput)
+                    {
+                        string inputDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Models\Input");
+                        Directory.CreateDirectory(inputDirectory);
+                        var businessInput = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseBusinessInput.pp"));
+                        businessInput = businessInput.Replace("$Class$", sb.ToString());
+                        businessInput = businessInput.Replace("$Product$", generator.InputFileProductName);
+                        File.WriteAllText(Path.Combine(inputDirectory, $"{generator.InputFileName}{args[0]}.cs"), businessInput);
+
+                        string hmbIntegrationTestsDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Test\HomeBanking\Integration");
+                        Directory.CreateDirectory(hmbIntegrationTestsDirectory);
+
+                        string hmbUnitTestsDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Test\HomeBanking\Unit");
+                        Directory.CreateDirectory(hmbUnitTestsDirectory);
+
+                        string mobIntegrationTestsDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Test\CAMobile\Integration");
+                        Directory.CreateDirectory(mobIntegrationTestsDirectory);
+
+                        string mobUnitTestsDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Test\CAMobile\Unit");
+                        Directory.CreateDirectory(mobUnitTestsDirectory);
+
+                        string requestDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Models\Request");
+                        Directory.CreateDirectory(requestDirectory);
+
+                        string serviceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Implementations");
+                        Directory.CreateDirectory(serviceDirectory);
+
+                        var requestFilename = $"{generator.InputFileName}Request";
+                        var modelRequest = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseModelRequest.pp"));
+                        sb = generator.GenerateClasses(jsonText, errorMessage: out string errorMessage1, name:requestFilename );
+                        modelRequest = modelRequest.Replace("$Class$", sb.ToString());
+                        modelRequest = modelRequest.Replace("$Product$", generator.InputFileProductName);
+                        File.WriteAllText(Path.Combine(requestDirectory, $"{requestFilename}.cs"), modelRequest);
+
+                        var serviceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseServiceSource.pp"));
+                        var hmbIntegrationTest = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseHmbIntegrationTest.pp"));
+                        var hmbUnitTest = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseHmbUnitTest.pp"));
+                        var mobIntegrationTest = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseMobileIntegrationTest.pp"));
+                        var mobUnitTest = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseMobileUnitTest.pp"));
+
+                        var serviceFilename = $"{generator.InputFileName}Service";
+                        var testFileName = $"{generator.InputFileName}Test";
+
+                        serviceSource = serviceSource.Replace("$Product$", generator.InputFileProductName);
+                        serviceSource = serviceSource.Replace("$Area$", generator.InputFileAreaName);
+                        serviceSource = serviceSource.Replace("$ClassName$", generator.InputFileName);
+                        serviceSource = serviceSource.Replace("$Type$", generator.InputType);
+                        File.WriteAllText(Path.Combine(serviceDirectory, $"{serviceFilename}.cs"), serviceSource);
+
+                        hmbIntegrationTest = hmbIntegrationTest.Replace("$Product$", generator.InputFileProductName);
+                        hmbIntegrationTest = hmbIntegrationTest.Replace("$Area$", generator.InputFileAreaName);
+                        hmbIntegrationTest = hmbIntegrationTest.Replace("$ClassName$", generator.InputFileName);
+                        File.WriteAllText(Path.Combine(hmbIntegrationTestsDirectory, $"{testFileName}.cs"), hmbIntegrationTest);
+
+                        hmbUnitTest = hmbUnitTest.Replace("$Product$", generator.InputFileProductName);
+                        hmbUnitTest = hmbUnitTest.Replace("$Area$", generator.InputFileAreaName);
+                        hmbUnitTest = hmbUnitTest.Replace("$ClassName$", generator.InputFileName);
+                        File.WriteAllText(Path.Combine(hmbUnitTestsDirectory, $"{testFileName}.cs"), hmbUnitTest);
+
+                        mobIntegrationTest = mobIntegrationTest.Replace("$Product$", generator.InputFileProductName);
+                        mobIntegrationTest = mobIntegrationTest.Replace("$Area$", generator.InputFileAreaName);
+                        mobIntegrationTest = mobIntegrationTest.Replace("$ClassName$", generator.InputFileName);
+                        File.WriteAllText(Path.Combine(mobIntegrationTestsDirectory, $"{testFileName}.cs"), mobIntegrationTest);
+
+                        mobUnitTest = mobUnitTest.Replace("$Product$", generator.InputFileProductName);
+                        mobUnitTest = mobUnitTest.Replace("$Area$", generator.InputFileAreaName);
+                        mobUnitTest = mobUnitTest.Replace("$ClassName$", generator.InputFileName);
+                        File.WriteAllText(Path.Combine(mobUnitTestsDirectory, $"{testFileName}.cs"), mobUnitTest);
+
+                        string areaServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
+                        var areaServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\areaService.pp"));
+                        areaServiceSource = areaServiceSource.Replace("$Product$", generator.InputFileProductName);
+                        areaServiceSource = areaServiceSource.Replace("$Area$", generator.InputFileAreaName);
+                        areaServiceSource = areaServiceSource.Replace("$ClassName$", generator.InputFileName);
+                        
+                        var areaServiceImplementationSource = File.ReadAllText(Path.Combine(repoFolder, $@"ServiceGenerator\serviceImplementation.pp"));
+                        areaServiceImplementationSource = areaServiceImplementationSource.Replace("//$Replace$", areaServiceSource);
+                        File.WriteAllText(Path.Combine(areaServiceDirectory, $"{generator.InputFileAreaName}Service.cs"), areaServiceImplementationSource);
+
+                    }
+                    else
+                    {
+                        string outputDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Models\Output");
+                        Directory.CreateDirectory(outputDirectory);
+                        var businessOutput = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseModelResult.pp"));
+                        businessOutput = businessOutput.Replace("$Class$", sb.ToString());
+                        businessOutput = businessOutput.Replace("$Product$", generator.InputFileProductName);
+                        File.WriteAllText(Path.Combine(outputDirectory, $"{generator.InputFileName}{args[0]}.cs"), businessOutput);
+
+                        string resultDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Models\Result");
+                        Directory.CreateDirectory(resultDirectory);
+
+                        var resultFilename = $"{generator.InputFileName}Result"; 
+                        sb = generator.GenerateClasses(jsonText, errorMessage: out string errorMessage1, name:resultFilename);
+                        var modelResult = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseModelResult.pp"));
+                        modelResult = modelResult.Replace("$Class$", sb.ToString());
+                        modelResult = modelResult.Replace("$Product$", generator.InputFileProductName);
+                        File.WriteAllText(Path.Combine(resultDirectory, $"{resultFilename}.cs"), modelResult);
+                    }                                                                             
+                }
+                if (generator.UseJsonPropertyNamesForMSA)
+                {
+                    var args = textBox1.Text.Split('|');
+
+                    generator.isInput = args[0].Equals("Input");
+                    generator.InputFileProductName = args[1];
+                    generator.InputFileAreaName = args[2];
+                    generator.InputFileName = args[3];
+                    sb = generator.GenerateClasses( jsonText, errorMessage: out errorMessage );
+
+
+                }
+
+                if ( !String.IsNullOrWhiteSpace( errorMessage ) )
                 {
                     this.csharpOutputTextbox.Text = "Error:\r\n" + errorMessage;
                 }
@@ -485,6 +671,11 @@ namespace Xamasoft.JsonClassGenerator.WinForms
             {
                 Clipboard.SetText( this.csharpOutputTextbox.Text, TextDataFormat.UnicodeText );
             }
+        }
+
+        private void mSAToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }

@@ -26,9 +26,17 @@ namespace Xamasoft.JsonClassGenerator
         public bool         ExplicitDeserialization    { get; set; }
         public bool         NoHelperClass              { get; set; }
         public string       MainClass                  { get; set; }
+        public string       InputFileName                  { get; set; }
+        public string InputType { get; set; }
+        public string       InputFileProductName                  { get; set; }
+        public bool       isInput                  { get; set; }
+        public string       typeFile                  { get; set; }
+        public string       InputFileAreaName                  { get; set; }
         public bool         UseProperties              { get; set; }
         public bool         UsePascalCase              { get; set; }
         public bool         UseJsonAttributes          { get; set; }
+        public bool UseJsonPropertyNamesForSDK { get; set; }
+        public bool UseJsonPropertyNamesForMSA { get; set; }
         public bool         UseJsonPropertyName        { get; set; }
         public bool         UseNestedClasses           { get; set; }
         public bool         ApplyObfuscationAttributes { get; set; }
@@ -57,7 +65,7 @@ namespace Xamasoft.JsonClassGenerator
 
         private bool used = false;
 
-        public StringBuilder GenerateClasses(string jsonInput, out string errorMessage)
+        public StringBuilder GenerateClasses(string jsonInput, out string errorMessage, string name = null)
         {
             errorMessage = string.Empty;
             try
@@ -88,10 +96,11 @@ namespace Xamasoft.JsonClassGenerator
                 if (this.CodeWriter == null) this.CodeWriter = new CSharpCodeWriter();
 
                 this.Types = new List<JsonType>();
-                this.Names.Add("Root");
+                var nameFile = string.IsNullOrWhiteSpace(name) ? $"{this.InputFileName}{this.typeFile}" : $"{name}";
+                this.Names.Add(nameFile);
                 JsonType rootType = new JsonType(this, examples[0]);
                 rootType.IsRoot = true;
-                rootType.AssignName("Root");
+                rootType.AssignName(nameFile);
                 this.GenerateClass(examples, rootType);
 
                 this.Types = this.HandleDuplicateClasses(this.Types);
@@ -122,15 +131,25 @@ namespace Xamasoft.JsonClassGenerator
             Boolean rootNamespace = false;
 
             this.CodeWriter.WriteFileStart(this, sw);
-            this.CodeWriter.WriteDeserializationComment(this, sw);
+            //this.CodeWriter.WriteDeserializationComment(this, sw);
 
             foreach (JsonType type in types)
             {
-                if (this.UseNamespaces && inNamespace && rootNamespace != type.IsRoot && this.SecondaryNamespace != null) { this.CodeWriter.WriteNamespaceEnd(this, sw, rootNamespace); inNamespace = false; }
-                if (this.UseNamespaces && !inNamespace) { this.CodeWriter.WriteNamespaceStart(this, sw, type.IsRoot); inNamespace = true; rootNamespace = type.IsRoot; }
+                if (this.UseNamespaces && inNamespace && rootNamespace != type.IsRoot && this.SecondaryNamespace != null) 
+                { 
+                    this.CodeWriter.WriteNamespaceEnd(this, sw, rootNamespace); inNamespace = false; 
+                }
+
+                if (this.UseNamespaces && !inNamespace) 
+                { 
+                    this.CodeWriter.WriteNamespaceStart(this, sw, type.IsRoot); 
+                    inNamespace = true; rootNamespace = type.IsRoot; 
+                }
+
                 this.CodeWriter.WriteClass(this, sw, type);
             }
-            if (this.UseNamespaces && inNamespace) this.CodeWriter.WriteNamespaceEnd(this, sw, rootNamespace);
+            if (this.UseNamespaces && inNamespace) 
+                this.CodeWriter.WriteNamespaceEnd(this, sw, rootNamespace);
             this.CodeWriter.WriteFileEnd(this, sw);
         }
 
