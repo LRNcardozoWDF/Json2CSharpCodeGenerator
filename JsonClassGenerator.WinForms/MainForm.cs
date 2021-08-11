@@ -616,6 +616,18 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                         areaServiceImplementationSource = areaServiceImplementationSource.Replace("//$Replace$", areaServiceSource);
                         File.WriteAllText(Path.Combine(areaServiceDirectory, $"{generator.InputFileAreaName}Service.cs"), areaServiceImplementationSource);
 
+                        //Service URL ex. PaymentURLService
+                        var urlServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
+                        var urlServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\urlServiceContent.pp"));
+
+                        urlServiceSource = urlServiceSource.Replace("$Product$", generator.InputFileProductName.ToLowerInvariant());
+                        urlServiceSource = urlServiceSource.Replace("$Area$", generator.InputFileAreaName);
+                        urlServiceSource = urlServiceSource.Replace("$ClassName$", generator.InputFileName);
+
+                        var urlServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\{generator.InputFileAreaName}URLService.cs"));
+                        urlServiceImplementationSource = urlServiceImplementationSource.Replace("//$Replace$", urlServiceSource);
+                        File.WriteAllText(Path.Combine(urlServiceDirectory, $"{generator.InputFileAreaName}URLService.cs"), urlServiceImplementationSource);
+
                         //SERVICE INTERFACE ex. IPaymentService
                         var areaIServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Interfaces");
                         var areaIServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\areaIService.pp"));
