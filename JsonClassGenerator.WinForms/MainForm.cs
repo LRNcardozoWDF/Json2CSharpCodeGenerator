@@ -527,8 +527,8 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                    
                     Directory.SetCurrentDirectory(this.Teste);
 
-                    var repoFolder = Directory.GetParent(Directory.GetCurrentDirectory()).FullName;
-                    string finalFolder = Path.Combine(repoFolder, "ParticularesServices");
+                    var repoFolder = Directory.GetCurrentDirectory();
+                    string finalFolder = Path.Combine(Directory.GetParent(Directory.GetCurrentDirectory()).FullName, "ParticularesServices");
 
                     Directory.CreateDirectory(finalFolder);
 
@@ -605,16 +605,27 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                         mobUnitTest = mobUnitTest.Replace("$ClassName$", generator.InputFileName);
                         File.WriteAllText(Path.Combine(mobUnitTestsDirectory, $"{testFileName}.cs"), mobUnitTest);
 
-                        string areaServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
+                        //SERVICE ex. PaymentService
+                        var areaServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
                         var areaServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\areaService.pp"));
                         areaServiceSource = areaServiceSource.Replace("$Product$", generator.InputFileProductName);
                         areaServiceSource = areaServiceSource.Replace("$Area$", generator.InputFileAreaName);
                         areaServiceSource = areaServiceSource.Replace("$ClassName$", generator.InputFileName);
                         
-                        var areaServiceImplementationSource = File.ReadAllText(Path.Combine(repoFolder, $@"ServiceGenerator\serviceImplementation.pp"));
+                        var areaServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\{generator.InputFileAreaName}Service.cs"));
                         areaServiceImplementationSource = areaServiceImplementationSource.Replace("//$Replace$", areaServiceSource);
                         File.WriteAllText(Path.Combine(areaServiceDirectory, $"{generator.InputFileAreaName}Service.cs"), areaServiceImplementationSource);
 
+                        //SERVICE INTERFACE ex. IPaymentService
+                        var areaIServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Interfaces");
+                        var areaIServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\areaIService.pp"));
+                        areaIServiceSource = areaIServiceSource.Replace("$Product$", generator.InputFileProductName);
+                        areaIServiceSource = areaIServiceSource.Replace("$Area$", generator.InputFileAreaName);
+                        areaIServiceSource = areaIServiceSource.Replace("$ClassName$", generator.InputFileName);
+
+                        var areaIServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Interfaces\I{generator.InputFileAreaName}Service.cs"));
+                        areaIServiceImplementationSource = areaIServiceImplementationSource.Replace("//$Replace$", areaIServiceSource);
+                        File.WriteAllText(Path.Combine(areaIServiceDirectory, $"I{generator.InputFileAreaName}Service.cs"), areaIServiceImplementationSource);
                     }
                     else
                     {
