@@ -629,13 +629,15 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                     }
                     else
                     {
+                        //Business Model
                         string outputDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Models\Output");
                         Directory.CreateDirectory(outputDirectory);
-                        var businessOutput = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseModelResult.pp"));
+                        var businessOutput = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\baseBusinessOutput.pp"));
                         businessOutput = businessOutput.Replace("$Class$", sb.ToString());
                         businessOutput = businessOutput.Replace("$Product$", generator.InputFileProductName);
                         File.WriteAllText(Path.Combine(outputDirectory, $"{generator.InputFileName}{args[0]}.cs"), businessOutput);
 
+                        //Result Model
                         string resultDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Models\Result");
                         Directory.CreateDirectory(resultDirectory);
 
