@@ -148,8 +148,11 @@ namespace Xamasoft.JsonClassGenerator
 
                 this.CodeWriter.WriteClass(this, sw, type);
             }
-            if (this.UseNamespaces && inNamespace) 
+            if (this.UseNamespaces && inNamespace)
+            {
                 this.CodeWriter.WriteNamespaceEnd(this, sw, rootNamespace);
+            }
+
             this.CodeWriter.WriteFileEnd(this, sw);
         }
 

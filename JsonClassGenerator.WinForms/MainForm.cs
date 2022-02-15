@@ -606,25 +606,25 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                         File.WriteAllText(Path.Combine(mobUnitTestsDirectory, $"{testFileName}.cs"), mobUnitTest);
 
                         //SERVICE ex. PaymentService
-                        var areaServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
+                        var areaServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business");
                         var areaServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\areaService.pp"));
                         areaServiceSource = areaServiceSource.Replace("$Product$", generator.InputFileProductName);
                         areaServiceSource = areaServiceSource.Replace("$Area$", generator.InputFileAreaName);
                         areaServiceSource = areaServiceSource.Replace("$ClassName$", generator.InputFileName);
                         
-                        var areaServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\{generator.InputFileAreaName}Service.cs"));
+                        var areaServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\{generator.InputFileAreaName}Service.cs"));
                         areaServiceImplementationSource = areaServiceImplementationSource.Replace("//$Replace$", areaServiceSource);
                         File.WriteAllText(Path.Combine(areaServiceDirectory, $"{generator.InputFileAreaName}Service.cs"), areaServiceImplementationSource);
 
                         //Service URL ex. PaymentURLService
-                        var urlServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services");
+                        var urlServiceDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business");
                         var urlServiceSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\urlServiceContent.pp"));
 
                         urlServiceSource = urlServiceSource.Replace("$Product$", generator.InputFileProductName.ToLowerInvariant());
                         urlServiceSource = urlServiceSource.Replace("$Area$", generator.InputFileAreaName);
                         urlServiceSource = urlServiceSource.Replace("$ClassName$", generator.InputFileName);
 
-                        var urlServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\{generator.InputFileAreaName}URLService.cs"));
+                        var urlServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\{generator.InputFileAreaName}URLService.cs"));
                         urlServiceImplementationSource = urlServiceImplementationSource.Replace("//$Replace$", urlServiceSource);
                         File.WriteAllText(Path.Combine(urlServiceDirectory, $"{generator.InputFileAreaName}URLService.cs"), urlServiceImplementationSource);
 
@@ -638,6 +638,47 @@ namespace Xamasoft.JsonClassGenerator.WinForms
                         var areaIServiceImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Interfaces\I{generator.InputFileAreaName}Service.cs"));
                         areaIServiceImplementationSource = areaIServiceImplementationSource.Replace("//$Replace$", areaIServiceSource);
                         File.WriteAllText(Path.Combine(areaIServiceDirectory, $"I{generator.InputFileAreaName}Service.cs"), areaIServiceImplementationSource);
+
+                        //Request Mapping ex. PaymentServiceRequestMapping
+                        var areaRequestMappingDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mappings\Request");
+                        var isMappings = Directory.Exists(areaRequestMappingDirectory);
+                        if (isMappings)
+                        {
+                            //Request Mapping ex. PaymentServiceRequestMapping
+                            areaRequestMappingDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mappings\Request");
+                            var areaRequestMappingSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\requestMappingContent.pp"));
+                            areaRequestMappingSource = areaRequestMappingSource.Replace("$ClassName$", generator.InputFileName);
+                            var areaRequestMappingImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mappings\Request\{generator.InputFileAreaName}RequestMapping.cs"));
+                            areaRequestMappingImplementationSource = areaRequestMappingImplementationSource.Replace("//$Replace$", areaRequestMappingSource);
+                            File.WriteAllText(Path.Combine(areaRequestMappingDirectory, $"{generator.InputFileAreaName}RequestMapping.cs"), areaRequestMappingImplementationSource);
+
+                            //Result Mapping ex. PaymentServiceResultMapping
+                            var areaResultMappingDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mappings\Result");
+                            var areaResultMappingSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\resultMappingContent.pp"));
+                            areaResultMappingSource = areaResultMappingSource.Replace("$ClassName$", generator.InputFileName);
+                            var areaResultMappingImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mappings\Result\{generator.InputFileAreaName}ResultMapping.cs"));
+                            areaResultMappingImplementationSource = areaResultMappingImplementationSource.Replace("//$Replace$", areaResultMappingSource);
+                            File.WriteAllText(Path.Combine(areaResultMappingDirectory, $"{generator.InputFileAreaName}ResultMapping.cs"), areaResultMappingImplementationSource);
+                        }
+                        else
+                        {
+                            //Request Mapping ex. PaymentServiceRequestMapping
+                            areaRequestMappingDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mapping\Request");
+                            var areaRequestMappingSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\requestMappingContent.pp"));
+                            areaRequestMappingSource = areaRequestMappingSource.Replace("$ClassName$", generator.InputFileName);
+                            var areaRequestMappingImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mapping\Request\{generator.InputFileAreaName}RequestMapping.cs"));
+                            areaRequestMappingImplementationSource = areaRequestMappingImplementationSource.Replace("//$Replace$", areaRequestMappingSource);
+                            File.WriteAllText(Path.Combine(areaRequestMappingDirectory, $"{generator.InputFileAreaName}RequestMapping.cs"), areaRequestMappingImplementationSource);
+
+                            //Result Mapping ex. PaymentServiceResultMapping
+                            var areaResultMappingDirectory = Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mapping\Result");
+                            var areaResultMappingSource = File.ReadAllText(Path.Combine(repoFolder, @"ServiceGenerator\resultMappingContent.pp"));
+                            areaResultMappingSource = areaResultMappingSource.Replace("$ClassName$", generator.InputFileName);
+                            var areaResultMappingImplementationSource = File.ReadAllText(Path.Combine(finalFolder, $@"{generator.InputFileProductName}.Business\Services\Mapping\Result\{generator.InputFileAreaName}ResultMapping.cs"));
+                            areaResultMappingImplementationSource = areaResultMappingImplementationSource.Replace("//$Replace$", areaResultMappingSource);
+                            File.WriteAllText(Path.Combine(areaResultMappingDirectory, $"{generator.InputFileAreaName}ResultMapping.cs"), areaResultMappingImplementationSource);
+                        }
+
                     }
                     else
                     {
